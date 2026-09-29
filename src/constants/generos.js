@@ -1,0 +1,15 @@
+export const GENEROS = [
+  'Acción',
+  'Animación',
+  'Aventura',
+  'Ciencia ficción',
+  'Comedia',
+  'Crimen',
+  'Documental',
+  'Drama',
+  'Fantasía',
+  'Misterio',
+  'Romance',
+  'Suspenso',
+  'Terror',
+]
