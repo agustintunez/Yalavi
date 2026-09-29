@@ -1,120 +1,177 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { useState, useEffect } from 'react'
+import { Route, Routes } from 'react-router-dom'
+import Navbar from './components/Navbar'
+import Inicio from './pages/Inicio'
+import Peliculas from './pages/Peliculas'
+import Series from './pages/Series'
+import Favoritos from './pages/Favoritos'
+import Estadisticas from './pages/Estadisticas'
+import Agregar from './pages/Agregar'
+import Editar from './pages/Editar'
+import NoEncontrada from './pages/NoEncontrada'
+import {
+  listarContenidos,
+  crearContenido,
+  actualizarContenido,
+  borrarContenido,
+  toggleFavorita,
+} from './services/contenidos'
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [contenidos, setContenidos] = useState([])
+  const [cargando, setCargando] = useState(true)
+  const [error, setError] = useState(null)
+  const [recarga, setRecarga] = useState(0)
+
+  useEffect(() => {
+    let cancelado = false
+
+    async function cargar() {
+      try {
+        setError(null)
+        const datos = await listarContenidos()
+
+        if (!cancelado) {
+          setContenidos(datos)
+        }
+      } catch (e) {
+        if (!cancelado) {
+          setError(e.message)
+        }
+      } finally {
+        if (!cancelado) {
+          setCargando(false)
+        }
+      }
+    }
+
+    cargar()
+
+    return () => {
+      cancelado = true
+    }
+  }, [recarga])
+
+  function recargar() {
+    setRecarga((n) => n + 1)
+  }
+
+  async function agregarContenido(datos) {
+    await crearContenido(datos)
+    recargar()
+  }
+
+  async function editarContenido(id, datos) {
+    await actualizarContenido(id, datos)
+    recargar()
+  }
+
+  async function eliminarContenido(id) {
+    await borrarContenido(id)
+    recargar()
+  }
+
+  async function alternarFavorita(id) {
+    const actual = contenidos.find((c) => c.id === id)
+    await toggleFavorita(id, !actual.favorita)
+    recargar()
+  }
 
   return (
     <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+      <Navbar />
 
-      <div className="ticks"></div>
+      <main className="contenedor pagina">
+        {cargando && (
+          <div className="estado-carga">
+            <span className="spinner" aria-hidden="true" />
+            <p>Cargando tu biblioteca...</p>
+          </div>
+        )}
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+        {error && (
+          <div className="estado-error">
+            <p>Error: {error}</p>
+            <button
+              type="button"
+              className="boton boton-primario"
+              onClick={() => {
+                setCargando(true)
+                setRecarga((n) => n + 1)
+              }}
+            >
+              Reintentar
+            </button>
+          </div>
+        )}
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
+        {!cargando && !error && (
+          <Routes>
+            <Route
+              path="/"
+              element={
+                <Inicio
+                  contenidos={contenidos}
+                  alAlternarFavorita={alternarFavorita}
+                  alEliminar={eliminarContenido}
+                />
+              }
+            />
+            <Route
+              path="/peliculas"
+              element={
+                <Peliculas
+                  contenidos={contenidos}
+                  alAlternarFavorita={alternarFavorita}
+                  alEliminar={eliminarContenido}
+                />
+              }
+            />
+            <Route
+              path="/series"
+              element={
+                <Series
+                  contenidos={contenidos}
+                  alAlternarFavorita={alternarFavorita}
+                  alEliminar={eliminarContenido}
+                />
+              }
+            />
+            <Route
+              path="/favoritos"
+              element={
+                <Favoritos
+                  contenidos={contenidos}
+                  alAlternarFavorita={alternarFavorita}
+                  alEliminar={eliminarContenido}
+                />
+              }
+            />
+            <Route path="/estadisticas" element={<Estadisticas contenidos={contenidos} />} />
+            <Route path="/agregar" element={<Agregar alAgregar={agregarContenido} />} />
+            <Route
+              path="/editar/:id"
+              element={<Editar contenidos={contenidos} alGuardar={editarContenido} />}
+            />
+            <Route path="*" element={<NoEncontrada />} />
+          </Routes>
+        )}
+      </main>
+
+      <footer className="pie">
+        <div className="contenedor pie-inner">
+          <span className="pie-marca">
+            Ya<span>lavi</span>
+          </span>
+          <span>Tu registro personal de películas y series</span>
+          <span className="pie-creditos">
+            Powered by{' '}
+            <a href="https://www.themoviedb.org/" target="_blank" rel="noopener noreferrer">
+              The Movie Database (TMDB)
+            </a>
+          </span>
+        </div>
+      </footer>
     </>
   )
 }
